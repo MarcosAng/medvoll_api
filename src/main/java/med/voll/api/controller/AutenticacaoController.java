@@ -19,20 +19,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class AutenticacaoController {
 
     @Autowired
-    private AuthenticationManager manager;
+    private AuthenticationManager manager; // essa classe não é reconhecida automaticamento pelo spring, por isso
+                                           // é criado na classe securityConfigurations o metodo authenticationManager
 
-    @Autowired
+    @Autowired // INJECAO DE DEPENDENCIA
     private TokenService tokenService;
 
     @PostMapping
     public ResponseEntity efetuarLogin(@RequestBody @Valid DadosAutenticacao dados){
+        try {
+            var authenticationToken = new UsernamePasswordAuthenticationToken(dados.login(), dados.senha()); // devolve o token
 
-        var authenticationToken = new UsernamePasswordAuthenticationToken(dados.login(), dados.senha());
+            var authentication = manager.authenticate(authenticationToken); // devolve o usuario logado no sistema
 
-        var authentication = manager.authenticate(authenticationToken);
+            var tokenJWT = tokenService.gerarToken((Usuario) authentication.getPrincipal());
 
-        var tokenJWT = tokenService.gerarToken((Usuario) authentication.getPrincipal());
-
-        return ResponseEntity.ok(new DadosTokenJWT(tokenJWT));
+            return ResponseEntity.ok(new DadosTokenJWT(tokenJWT)); //dto para retonar o token
+        }catch (Exception e){
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
